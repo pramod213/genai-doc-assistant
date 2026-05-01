@@ -5,7 +5,7 @@ from fastapi import HTTPException
 import io
 
 
-async def process_document(file):
+async def process_document(file, doc_id):
 
     try:
         contents = await file.read()
@@ -48,6 +48,7 @@ async def process_document(file):
         chunks = [
             {
                 "text": text[i:i + chunk_size],
+                "doc_id": doc_id,
                 "source": file.filename
             }
             for i in range(0, len(text), chunk_size)

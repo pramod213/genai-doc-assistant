@@ -1,5 +1,7 @@
 from fastapi import FastAPI
-from app.routers import upload, chat
+from app.routers import upload
+from app.routers import ask
+from app.routers import documents
 
 app = FastAPI(
     title="GenAI Document Assistant",
@@ -9,7 +11,8 @@ app = FastAPI(
 
 # Routers
 app.include_router(upload.router, prefix="/upload", tags=["Upload"])
-app.include_router(chat.router, prefix="/ask", tags=["Ask"])
+app.include_router(ask.router, prefix="/ask", tags=["Ask"])
+app.include_router(documents.router)
 
 
 @app.get("/")

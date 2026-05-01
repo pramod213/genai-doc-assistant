@@ -5,6 +5,18 @@ import requests
 
 API_URL = "http://127.0.0.1:8000"
 
+def get_documents():
+    try:
+        res = requests.get(f"{API_URL}/documents")
+        data = res.json()
+
+        if isinstance(data, dict):
+            return data.get("documents", [])
+        return data
+
+    except:
+        return []
+
 
 
 # page configurations
@@ -163,6 +175,43 @@ with st.sidebar:
         except Exception as e:
             st.error(f"Error: {str(e)}")
 
+
+
+    st.markdown("---")
+    st.markdown("### 📁 Manage Documents")
+
+    if st.button("📄 Show Uploaded Documents"):
+        
+        st.write(requests.get(f"{API_URL}/documents").json())  # 👈 DEBUG LINE
+
+        documents = get_documents()
+
+        if not documents:
+            st.info("No documents uploaded yet.")
+        else:
+            for doc in documents:
+
+                col1, col2 = st.columns([3, 1])
+
+                with col1:
+                    st.markdown(f"📄 {doc['filename']}")
+
+                with col2:
+                    if st.button("🗑️", key=f"del_{doc['id']}"):
+
+                        try:
+                            res = requests.delete(
+                                f"{API_URL}/documents/{doc['id']}"
+                            )
+
+                            if res.status_code == 200:
+                                st.success("Deleted")
+                                st.rerun()
+                            else:
+                                st.error("Delete failed")
+
+                        except Exception as e:
+                            st.error(str(e))
 
 
 # main content

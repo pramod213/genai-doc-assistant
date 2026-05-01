@@ -1,45 +1,39 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-import uuid
 
-from app.services.document import extract_text, chunk_text
-from app.services.embedding import model
-from app.services.retrieval import vector_store
+from app.services.document import process_document
+from app.services.embedding import create_embeddings
+from app.services.retrieval import store_vectors
 
 router = APIRouter()
 
-DOCUMENT_STORE = {}
 
+@router.post("/")
+async def upload_file(file: UploadFile = File(...)):
 
-@router.post("/upload")
-async def upload_document(file: UploadFile = File(...)):
-    try:
-        doc_id = str(uuid.uuid4())
+    # Allowed file types
+    allowed_extensions = (".pdf", ".txt")
 
-        text = extract_text(file)
+    # Safe filename handling
+    filename = file.filename or ""
 
-        if not text:
-            raise HTTPException(status_code=400, detail="No text extracted")
+    # Validate file extension
+    if not filename.lower().endswith(allowed_extensions):
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF and TXT files are allowed"
+        )
 
-        chunks = chunk_text(text)
+    # Process document (extract text + chunking)
+    chunks = await process_document(file)
 
-        embeddings = model.encode(chunks)
+    # Generate embeddings
+    vectors = create_embeddings(chunks)
 
-        vector_store.add(doc_id, chunks, embeddings)
+    # Store vectors in FAISS
+    store_vectors(chunks, vectors)
 
-        DOCUMENT_STORE[doc_id] = {
-            "filename": file.filename,
-            "chunks": len(chunks)
-        }
-
-        return {
-            "message": "Document uploaded successfully",
-            "document_id": doc_id,
-            "chunks": len(chunks)
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-
-
+    return {
+        "message": "File processed successfully",
+        "filename": filename,
+        "chunks": len(chunks)
+    }

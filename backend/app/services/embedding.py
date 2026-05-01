@@ -1,15 +1,12 @@
 from sentence_transformers import SentenceTransformer
-import numpy as np
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
-def embed_query(query):
-    embedding = model.encode(query)
-    return np.array(embedding).astype("float32")
+def create_embeddings(chunks):
+    texts = [chunk["text"] for chunk in chunks]
+    return model.encode(texts)
 
 
-
-
-
-
+def embed_query(query: str):
+    return model.encode([query])[0]

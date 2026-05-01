@@ -7,8 +7,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-app.include_router(upload.router)
-app.include_router(chat.router)
+# Routers
+app.include_router(upload.router, prefix="/upload", tags=["Upload"])
+app.include_router(chat.router, prefix="/ask", tags=["Ask"])
 
 
 @app.get("/")
@@ -19,14 +20,8 @@ def root():
     }
 
 
-@app.get("/status")
-def system_status():
+@app.get("/health")
+def health():
     return {
-        "status": "running"
+        "status": "ok"
     }
-
-
-
-
-
-

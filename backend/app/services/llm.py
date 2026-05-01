@@ -1,54 +1,39 @@
 
-
-
-
 import requests
+from app.config import OLLAMA_URL, MODEL_NAME
 
 
-def generate_answer(question, context):
+def generate_answer(query, context_chunks):
+
+    context = "\n".join(context_chunks)
+
     prompt = f"""
-You are a strict document-based AI assistant.
+    You are a helpful assistant.
 
-You MUST follow these rules:
+    Context:
+    {context}
 
-RULES:
-- Return answer ONLY in bullet points.
-- Do not return paragraphs.
-- Do not include context text.
-- Answer ONLY using the given context.
-- Do NOT use outside knowledge.
-- If the answer is not in the context, reply EXACTLY:
-- "I don't know based on the document. Please ask questions related to the document."
-- Always respond in short, clear bullet points.
-- Keep answers concise and to the point.
+    Question:
+    {query}
 
----------------------
-CONTEXT:
-{context}
----------------------
-
-QUESTION:
-{question}
-
-ANSWER:
-"""
+    Answer:
+    """
 
     try:
         response = requests.post(
-            "http://localhost:11434/api/generate",
+            OLLAMA_URL,
             json={
-                "model": "mistral",
+                "model": MODEL_NAME,
                 "prompt": prompt,
-                "stream": False,
-                "temperature": 0.1
+                "stream": False
             }
         )
 
-        response.raise_for_status()
+        data = response.json()
 
-        result = response.json()
+        print("OLLAMA RESPONSE:", data)
 
-        return result.get("response", "").strip()
+        return data.get("response", "No response generated")
 
     except Exception as e:
-        return "I don't know based on the document. Please ask questions related to the document."
+        return f"Error generating answer: {str(e)}"

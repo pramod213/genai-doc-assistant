@@ -1,42 +1,74 @@
+
 from pypdf import PdfReader
+from pypdf.errors import PdfReadError
+from fastapi import HTTPException
+import io
 
 
-def extract_text(file):
-    text = ""
+async def process_document(file):
 
-    if file.filename.endswith(".pdf"):
-        pdf = PdfReader(file.file)
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
+    try:
+        contents = await file.read()
 
-    elif file.filename.endswith(".txt"):
-        text = file.file.read().decode("utf-8")
+        filename = file.filename.lower()
 
-    else:
-        raise ValueError("Only PDF and TXT supported")
+        text = ""
 
-    return text.strip()
+        # =========================
+        # PDF Processing
+        # =========================
+        if filename.endswith(".pdf"):
 
+            pdf_reader = PdfReader(io.BytesIO(contents))
 
-def chunk_text(text, chunk_size=400, overlap=50):
-    words = text.split()
-    chunks = []
+            for page in pdf_reader.pages:
+                page_text = page.extract_text()
 
-    start = 0
-    while start < len(words):
-        end = start + chunk_size
-        chunk = words[start:end]
+                if page_text:
+                    text += page_text
 
-        if chunk:
-            chunks.append(" ".join(chunk))
+        # =========================
+        # TXT Processing
+        # =========================
+        elif filename.endswith(".txt"):
 
-        start += chunk_size - overlap
+            text = contents.decode("utf-8")
 
-    return chunks
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Unsupported file type"
+            )
 
+        # =========================
+        # Chunking
+        # =========================
+        chunk_size = 500
 
+        chunks = [
+            {
+                "text": text[i:i + chunk_size],
+                "source": file.filename
+            }
+            for i in range(0, len(text), chunk_size)
+        ]
 
+        return chunks
 
+    except PdfReadError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or corrupted PDF file"
+        )
 
+    except UnicodeDecodeError:
+        raise HTTPException(
+            status_code=400,
+            detail="TXT file encoding must be UTF-8"
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing document: {str(e)}"
+        )
